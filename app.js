@@ -22,7 +22,7 @@ const ROOT = 'stockstore';
 // Servidor de avisos (Render). En la PWA es el mismo dominio; en la APK
 // se usa la URL publicada (cámbiala aquí cuando tengas la de Render).
 const PUSH_SERVER = (location.protocol.startsWith('http') && location.hostname !== 'localhost')
-    ? location.origin : 'https://stockstore.onrender.com';
+    ? location.origin : 'https://stock-aogy.onrender.com';
 const VAPID_PUBLIC = 'BGKgaWL5uVbAnbTbFRn7I5I_9Igl5G__mRe8grQu-Dq5CZHbGImeVybyWVCNgsiBsP3cYEJz32tt97n0XzTA4G0';
 
 // El código NO está escrito en la app: solo un "verificador" cifrado con él.
@@ -346,6 +346,7 @@ let replyTo = null;
 let mediaCache = new Map();   // mediaId → objectURL
 let mediaLoading = new Map(); // mediaId → Promise
 let unreadWhileAway = 0;
+let liveSince = 0;
 let pickingFile = false;
 let hiddenAt = 0;
 
@@ -389,6 +390,7 @@ async function startChat() {
     if (!inChat) return;
     const { onChildAdded, onChildChanged, onChildRemoved, onValue, query, limitToLast, onDisconnect, set } = FB;
 
+    liveSince = Date.now();
     const q = query(R('messages'), limitToLast(200));
     unsubs.push(onChildAdded(q, (s) => addMsg(s.key, s.val())));
     unsubs.push(onChildChanged(q, (s) => changeMsg(s.key, s.val())));
@@ -456,6 +458,7 @@ function addMsg(key, data) {
     while (idx > 0 && order[idx - 1] > key) idx--;
     order.splice(idx, 0, key);
     m.el = buildMsgEl(m);
+    if (liveSince && Date.now() - liveSince > 1200) m.el.classList.add('pop');
     const nextKey = order[idx + 1];
     const list = $('chatList');
     if (nextKey && msgs.get(nextKey).el) list.insertBefore(m.el, msgs.get(nextKey).el);
@@ -501,7 +504,7 @@ async function fillMsg(m) {
     if (p.reply) html += `<div class="b-reply" data-goto="${esc(p.reply.id)}"><b>${esc(nameOf(p.reply.who))}</b><span>${esc(p.reply.snip)}</span></div>`;
     b.className = 'bubble';
     if (t === 'image' || t === 'video') {
-        b.classList.add('media'); if (p.text) b.classList.add('has-caption');
+        b.classList.add('media'); if (p.text) b.classList.add('has-caption'); if (!p.text && !p.reply) b.classList.add('media-bare');
         const ratio = (p.w && p.h) ? `aspect-ratio:${p.w}/${p.h};` : '';
         const w = p.w && p.h ? Math.min(300, Math.max(160, 300 * Math.min(1, p.w / p.h * 1.1))) : 260;
         html += `<div class="b-media" data-media="${esc(m.data.mediaId)}" style="width:${w}px;max-width:68vw;${ratio}max-height:380px">
@@ -566,7 +569,7 @@ function relayout() {
 
 // ─────────────────────────── enviar ───────────────────────────
 const input = $('msgInput');
-function autoGrow() { input.style.height = 'auto'; input.style.height = Math.min(140, input.scrollHeight) + 'px'; $('sendBtn').classList.toggle('on', !!input.value.trim()); }
+function autoGrow() { input.style.height = 'auto'; input.style.height = Math.min(140, input.scrollHeight) + 'px'; const has = !!input.value.trim(); $('sendBtn').classList.toggle('on', has); input.closest('.composer').classList.toggle('typing', has); }
 input.addEventListener('input', () => { autoGrow(); typingPing(); });
 input.addEventListener('keydown', (e) => {
     // En computador: Enter envía, Shift+Enter hace salto de línea
@@ -774,10 +777,32 @@ function attachPress(bubble, key) {
         bubble.classList.add('pressed');
         t = setTimeout(() => { t = null; bubble.classList.remove('pressed'); if (navigator.vibrate) navigator.vibrate(10); openMsgActions(key, bubble); }, 430);
     }, { passive: true });
+    let swiping = false, dx = 0, ico = null;
     bubble.addEventListener('touchmove', (e) => {
-        if (Math.abs(e.touches[0].clientX - sx) > 8 || Math.abs(e.touches[0].clientY - sy) > 8) { moved = true; clearTimeout(t); t = null; bubble.classList.remove('pressed'); }
+        const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
+        if (Math.abs(mx) > 8 || Math.abs(my) > 8) { moved = true; clearTimeout(t); t = null; bubble.classList.remove('pressed'); }
+        // deslizar a la derecha = responder (como en Telegram)
+        if (!swiping && mx > 12 && Math.abs(mx) > Math.abs(my) * 1.6) {
+            swiping = true;
+            ico = document.createElement('div'); ico.className = 'swipe-ico';
+            ico.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>';
+            bubble.parentElement.prepend(ico);
+        }
+        if (swiping) {
+            dx = Math.max(0, Math.min(80, mx));
+            bubble.style.transition = 'none'; bubble.style.transform = `translateX(${dx}px)`;
+            if (ico) ico.classList.toggle('on', dx > 55);
+        }
     }, { passive: true });
-    bubble.addEventListener('touchend', () => { bubble.classList.remove('pressed'); if (t) { clearTimeout(t); t = null; } });
+    bubble.addEventListener('touchend', () => {
+        bubble.classList.remove('pressed'); if (t) { clearTimeout(t); t = null; }
+        if (swiping) {
+            if (dx > 55) { if (navigator.vibrate) navigator.vibrate(8); startReply(key); }
+            bubble.style.transition = 'transform .2s'; bubble.style.transform = '';
+            if (ico) { const i = ico; setTimeout(() => i.remove(), 200); }
+            swiping = false; dx = 0; ico = null;
+        }
+    });
     bubble.addEventListener('contextmenu', (e) => { e.preventDefault(); openMsgActions(key, bubble); });
     bubble.addEventListener('click', (e) => {
         const m = msgs.get(key); if (!m || !m.payload) return;
@@ -805,8 +830,9 @@ function snipOf(m) {
     if (m.data.type === 'video') return '🎥 Video' + (m.payload.text ? ' · ' + m.payload.text : '');
     return (m.payload.text || '').slice(0, 120);
 }
-window.actReply = () => {
-    const m = msgs.get(actKey); closeMsgActions(); if (!m) return;
+window.actReply = () => { closeMsgActions(); startReply(actKey); };
+function startReply(key) {
+    const m = msgs.get(key); if (!m || !m.payload) return;
     replyTo = { id: m.key, who: m.data.from, snip: snipOf(m) };
     $('replyWho').textContent = nameOf(m.data.from); $('replyTxt').textContent = replyTo.snip;
     $('replyBar').classList.add('on'); input.focus();
