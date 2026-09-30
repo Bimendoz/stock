@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#FF5A1F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="STOCK STORE">
+<title>STOCK STORE — Ofertas todos los días</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ══════════════════════════ TIENDA ══════════════════════════ -->
+<div id="store">
+  <header class="st-header">
+    <div class="st-top">
+      <div class="st-logo"><span class="st-logo-box">
+        <svg viewBox="0 0 24 24"><path d="M21 7.5 12 3 3 7.5v9L12 21l9-4.5v-9zM12 5.2l5.9 2.9L12 11 6.1 8.1 12 5.2zM5 9.7l6 3v6l-6-3v-6zm8 9v-6l6-3v6l-6 3z"/></svg>
+      </span><b>STOCK</b>&nbsp;STORE</div>
+      <button class="st-icon-btn" onclick="openSheet('accountSheet')" aria-label="Cuenta">
+        <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-9 2.2-9 5v2h18v-2c0-2.8-4.6-5-9-5z"/></svg>
+      </button>
+    </div>
+    <div class="st-search">
+      <svg viewBox="0 0 24 24"><path d="M10 2a8 8 0 0 1 6.3 12.9l5.4 5.4-1.4 1.4-5.4-5.4A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg>
+      <input id="searchInput" type="search" placeholder="Buscar audífonos, organizadores, tenis…" autocomplete="off">
+      <button class="st-search-btn" onclick="doSearch()">Buscar</button>
+    </div>
+  </header>
+
+  <div class="st-trust">
+    <span>🚚 Envío gratis</span><span>↩️ Devolución 90 días</span><span>🔒 Pago seguro</span>
+  </div>
+
+  <nav class="st-cats" id="catBar"></nav>
+
+  <main class="st-main" id="storeMain">
+    <section class="st-banner">
+      <div>
+        <small>Solo por hoy</small>
+        <h2>Hasta <b>-80%</b> en miles de artículos</h2>
+        <p>Compra 2 productos y desbloquea un cupón exclusivo 🎁</p>
+      </div>
+      <div class="st-banner-art">%</div>
+    </section>
+
+    <section class="st-flash">
+      <div class="st-flash-head">
+        <h3>⚡ Ofertas relámpago</h3>
+        <div class="st-timer">Termina en <span id="flashTimer">00:00:00</span></div>
+      </div>
+      <div class="st-flash-row" id="flashRow"></div>
+    </section>
+
+    <div class="st-section-title" id="gridTitle">Recomendados para ti</div>
+    <div class="st-grid" id="productGrid"></div>
+    <div class="st-end">Has visto todo por ahora ✨</div>
+  </main>
+
+  <nav class="st-tabbar">
+    <button class="active" onclick="goHome()"><svg viewBox="0 0 24 24"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg><span>Inicio</span></button>
+    <button onclick="openSheet('catSheet')"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg><span>Categorías</span></button>
+    <button onclick="openSheet('accountSheet')"><svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-9 2.2-9 5v2h18v-2c0-2.8-4.6-5-9-5z"/></svg><span>Tú</span></button>
+    <button onclick="openCart()"><svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM5.2 4H2V2h4.6l.9 2H21l-3 9H8.5l-.9 2H19v2H4.4l2.4-4.6L5.2 4z"/></svg><span>Carrito</span><i class="st-badge" id="cartBadge">0</i></button>
+  </nav>
+</div>
+
+<!-- Hojas inferiores (sheets) -->
+<div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheets()"></div>
+
+<div class="sheet" id="productSheet">
+  <div class="sheet-grip"></div>
+  <div id="productDetail"></div>
+</div>
+
+<div class="sheet" id="catSheet">
+  <div class="sheet-grip"></div>
+  <h3 class="sheet-title">Categorías</h3>
+  <div class="cat-grid" id="catGrid"></div>
+</div>
+
+<div class="sheet" id="accountSheet">
+  <div class="sheet-grip"></div>
+  <h3 class="sheet-title">Mi cuenta</h3>
+  <div class="acc-list">
+    <div class="acc-item">📦 Mis pedidos <span>Sin pedidos recientes</span></div>
+    <div class="acc-item">🎟️ Cupones <span>Compra 2 artículos para desbloquear</span></div>
+    <div class="acc-item">📍 Direcciones <span>Agregar dirección</span></div>
+    <div class="acc-item">💬 Atención al cliente <span>Lun a Sáb · 8am – 8pm</span></div>
+    <div class="acc-item">🔔 Notificaciones de ofertas <span id="accPushState">—</span></div>
+  </div>
+</div>
+
+<div class="sheet sheet-tall" id="cartSheet">
+  <div class="sheet-grip"></div>
+  <h3 class="sheet-title">Carrito <small id="cartCount"></small></h3>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="cart-coupon" id="couponBox"></div>
+  <div class="cart-foot">
+    <div class="cart-sum">
+      <div><span>Subtotal</span><b id="cartSubtotal">$0</b></div>
+      <div class="cart-save" id="cartSaving"></div>
+    </div>
+    <button class="btn-primary" id="checkoutBtn" onclick="checkout()">Finalizar compra</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════ IDENTIDAD ══════════════════════════ -->
+<div class="who" id="whoScreen">
+  <div class="who-card">
+    <h2>¿Quién eres?</h2>
+    <p>Se guarda solo en este dispositivo.</p>
+    <div class="who-opts" id="whoOpts"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ CHAT ══════════════════════════ -->
+<div id="chat" class="chat" aria-hidden="true">
+  <div class="chat-bg"></div>
+  <header class="chat-head glass">
+    <button class="ch-btn" onclick="lockChat()" aria-label="Volver a la tienda">
+      <svg viewBox="0 0 24 24"><path d="M15.4 4.6 14 3.2 5.2 12l8.8 8.8 1.4-1.4L8 12z"/></svg>
+    </button>
+    <div class="ch-peer">
+      <div class="ch-avatar" id="peerAvatar">🦁</div>
+      <div class="ch-peer-txt">
+        <b id="peerName">León</b>
+        <small id="peerStatus">conectando…</small>
+      </div>
+    </div>
+    <div class="ch-lock" id="e2eLock" title="Cifrado de extremo a extremo">
+      <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>
+    </div>
+    <button class="ch-btn" onclick="toggleChatMenu(event)" aria-label="Menú">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+    </button>
+    <div class="chat-menu glass" id="chatMenu">
+      <button id="pushMenuBtn" onclick="enablePush(true)">🔔 Activar avisos</button>
+      <button onclick="switchIdentity()">🔄 Cambiar de usuario</button>
+      <button onclick="lockChat()">🛍️ Volver a la tienda</button>
+    </div>
+  </header>
+
+  <div class="chat-scroll" id="chatScroll">
+    <div class="chat-list" id="chatList">
+      <div class="chat-empty" id="chatEmpty">
+        <div>🔒</div>
+        <b>Chat privado</b>
+        <p>Los mensajes, fotos y videos están cifrados de extremo a extremo.</p>
+      </div>
+    </div>
+  </div>
+  <button class="to-bottom glass" id="toBottom" onclick="scrollToBottom(true)">
+    <svg viewBox="0 0 24 24"><path d="M12 16.6 4.6 9.2 6 7.8l6 6 6-6 1.4 1.4z"/></svg>
+    <i id="unreadBadge"></i>
+  </button>
+
+  <div class="upload-bar glass" id="uploadBar"><span id="uploadTxt">Enviando…</span><div><i id="uploadFill"></i></div></div>
+
+  <footer class="chat-foot glass" id="chatFoot">
+    <div class="reply-bar" id="replyBar">
+      <div><b id="replyWho"></b><span id="replyTxt"></span></div>
+      <button onclick="cancelReply()" aria-label="Cancelar">✕</button>
+    </div>
+    <div class="composer">
+      <button class="cp-btn" id="emojiBtn" onclick="toggleEmoji()" aria-label="Emojis">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-3.5-9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM12 17.5c2.3 0 4.3-1.4 5.1-3.5H6.9c.8 2.1 2.8 3.5 5.1 3.5z"/></svg>
+      </button>
+      <textarea id="msgInput" rows="1" placeholder="Mensaje" enterkeyhint="send"></textarea>
+      <button class="cp-btn" id="attachBtn" onclick="toggleAttach()" aria-label="Adjuntar">
+        <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>
+      </button>
+      <button class="cp-send" id="sendBtn" onclick="sendText()" aria-label="Enviar">
+        <svg viewBox="0 0 24 24"><path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg>
+      </button>
+    </div>
+    <div class="attach-menu" id="attachMenu">
+      <button onclick="pickMedia('gallery')"><i>🖼️</i>Fotos y videos</button>
+      <button onclick="pickMedia('photo')"><i>📷</i>Tomar foto</button>
+      <button onclick="pickMedia('video')"><i>🎥</i>Grabar video</button>
+    </div>
+    <div class="emoji-panel" id="emojiPanel">
+      <div class="emoji-tabs" id="emojiTabs"></div>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+  </footer>
+
+  <input type="file" id="galleryInput" accept="image/*,video/*" multiple hidden>
+  <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+  <input type="file" id="videoInput" accept="video/*" capture="environment" hidden>
+</div>
+
+<!-- Menú de acciones de un mensaje -->
+<div class="msg-actions-bg" id="msgActionsBg" onclick="closeMsgActions()"></div>
+<div class="msg-actions glass" id="msgActions">
+  <button onclick="actReply()">↩️ Responder</button>
+  <button onclick="actCopy()" id="actCopyBtn">📋 Copiar</button>
+  <button onclick="actSave()" id="actSaveBtn">⬇️ Guardar</button>
+  <button onclick="actDelete()" id="actDeleteBtn" class="danger">🗑️ Eliminar</button>
+</div>
+
+<!-- Visor de fotos / videos -->
+<div class="viewer" id="viewer">
+  <div class="viewer-top">
+    <button onclick="closeViewer()" aria-label="Cerrar">✕</button>
+    <button onclick="saveViewer()" aria-label="Guardar">⬇️</button>
+  </div>
+  <div class="viewer-body" id="viewerBody"></div>
+</div>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>
